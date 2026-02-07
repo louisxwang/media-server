@@ -46,6 +46,7 @@ Setup & run (local)
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
+# or using uv: uv sync
 ```
 2. Install deps and run:
 ```powershell
