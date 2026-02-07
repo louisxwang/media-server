@@ -15,8 +15,9 @@ def get_media_preview(file_path: str, check_exist: bool = True) -> str:
     
     if check_exist and not os.path.isfile(preview_path):
         preview_path = file_path
-    
-    return '/' + preview_path
+
+    # Return filesystem path (normalized with forward slashes); caller should convert to URL
+    return preview_path.replace('\\', '/')
 
 
 def delete_media(

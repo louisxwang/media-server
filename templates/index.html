@@ -725,7 +725,7 @@
             }
         }
         // check which video to start play at scroll and after page loading
-        document.addEventListener("DOMContentLoaded", lazyVideoLoad);
+        document.addEventListener("DOMContentLoaded", function(){ lazyVideoLoad(); focusMediaFromURL(); });
         document.addEventListener("scroll", lazyVideoLoad);
         document.addEventListener("scroll", foldSideMenu);
 
@@ -885,7 +885,36 @@
 
         function goToLocation(){
             var currentMedia = medias[currentIndex];
-            window.location.href= '/browse/' + currentMedia.split('/').slice(2,-1).join('/')
+            var folder = currentMedia.split('/').slice(2,-1).join('/');
+            // Navigate to the folder and include the full media path to focus on
+            window.location.href = '/browse/' + folder + '?focus=' + encodeURIComponent(currentMedia);
+        }
+
+        // If the URL contains a `focus` query param, scroll the corresponding media into view
+        function focusMediaFromURL() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const focus = params.get('focus');
+                if (!focus) return;
+
+                // Find the grid item whose data-name exactly matches the media path
+                const gridItems = document.querySelectorAll('.grid-item');
+                for (const item of gridItems) {
+                    if (item.dataset.name === focus) {
+                        // Ensure item is visible and scroll to center
+                        item.style.display = 'block';
+                        item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        // Briefly highlight the item so user can spot it
+                        const origBox = item.style.boxShadow;
+                        item.style.boxShadow = '0 0 0 4px rgba(255, 215, 0, 0.9)';
+                        setTimeout(() => { item.style.boxShadow = origBox; }, 2500);
+                        break;
+                    }
+                }
+            } catch (e) {
+                console.error('focusMediaFromURL error', e);
+            }
         }
 
         function toggleModalMenu() {
@@ -1095,6 +1124,42 @@
                 alert('No items selected');
             }
         }
+
+        // Click on left/right of modal to change media, but ignore clicks on controls
+        (function() {
+            var mediaModal = document.getElementById('mediaModal');
+            if (!mediaModal) return;
+
+            mediaModal.addEventListener('click', function(e) {
+                // If click landed on any control element (or inside one), do nothing
+                var controlSelectors = [
+                    '.prev',
+                    '.next',
+                    '.menu-btn',
+                    '#modalMenu',
+                    '.modal-menu',
+                    '.close',
+                    '.tag-modal-button',
+                    '#mediaName',
+                    '#currentMediaTags'
+                ];
+
+                for (var i = 0; i < controlSelectors.length; i++) {
+                    if (e.target.closest(controlSelectors[i])) {
+                        return; // clicked on a control, don't switch media
+                    }
+                }
+
+                // Determine left or right half click relative to modal
+                var rect = mediaModal.getBoundingClientRect();
+                var x = e.clientX - rect.left;
+                if (x < rect.width / 3) {
+                    changeMedia(-1);
+                } else if (x > 2 * rect.width / 3) {
+                    changeMedia(1);
+                }
+            });
+        })();
 
     </script>
 </body>
