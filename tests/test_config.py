@@ -1,9 +1,8 @@
 """Tests for config module."""
 import json
-import pytest
 from pathlib import Path
 
-from src.media_server.config import load_config, get_paths, url_to_fs, fs_to_url
+from src.media_server.config import fs_to_url, get_paths, load_config, url_to_fs
 
 
 class TestLoadConfig:

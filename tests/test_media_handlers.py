@@ -1,12 +1,11 @@
 """Tests for media_handlers module."""
-import pytest
 from pathlib import Path
 
 from src.media_server.media_handlers import (
-    get_media_preview,
     delete_media,
-    rename_media_file,
+    get_media_preview,
     move_items,
+    rename_media_file,
 )
 
 

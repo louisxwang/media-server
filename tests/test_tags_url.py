@@ -4,13 +4,8 @@ This test ensures that the `/tags/<tag>` page yields media URLs
 that use the configured `MEDIA_URL` prefix (e.g. `/static/...`) and
 never embed absolute filesystem paths like `E:/...` in the rendered HTML.
 """
-import re
-import json
-from pathlib import Path
-
-import pytest
-
 import importlib
+import json
 
 media_module = importlib.import_module('src.media_server.app')
 media_app = media_module.app

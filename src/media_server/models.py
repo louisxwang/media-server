@@ -1,5 +1,4 @@
 """Global state management for media server."""
-import os
 import pickle
 from pathlib import Path
 

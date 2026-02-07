@@ -1,9 +1,8 @@
 """Tests for tag_handlers module."""
-import pytest
 
 from src.media_server.tag_handlers import (
-    update_tag_global_variables,
     merge_tags,
+    update_tag_global_variables,
 )
 
 

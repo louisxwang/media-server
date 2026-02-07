@@ -4,8 +4,9 @@ from src.media_server.img_utils import *
 __all__ = []
 """Contains all kinds to image processing tools"""
 import os
-import PIL
+
 from PIL import Image
+
 
 def get_file_list(full_path, extensions=('.png',)):
     """Get all files under given folder"""

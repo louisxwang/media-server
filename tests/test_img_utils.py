@@ -1,4 +1,3 @@
-import os
 from src.media_server import img_utils
 
 

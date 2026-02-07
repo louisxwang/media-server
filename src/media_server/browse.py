@@ -1,10 +1,8 @@
 """Browse and search routes."""
 import os
-import random
 
 from natsort import natsorted
 
-from src.media_server.config import fs_to_url, url_to_fs
 from src.media_server.media_handlers import get_media_preview
 from src.media_server.models import get_pinyin
 

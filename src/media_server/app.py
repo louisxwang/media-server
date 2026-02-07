@@ -1,6 +1,5 @@
 import os
 import subprocess
-from pathlib import Path
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 
@@ -14,7 +13,6 @@ from src.media_server.browse import (
 from src.media_server.config import fs_to_url, get_paths, url_to_fs
 from src.media_server.media_handlers import (
     delete_media,
-    get_media_preview,
     move_items,
     rename_media_file,
 )
@@ -518,7 +516,6 @@ def page_for_medias(medias: list, tagname: str = '') -> str:
         ]
     
     # Sort by pinyin
-    from natsort import natsorted
     from src.hanzi_sort.hanzi_sort import pinyin_order
     media_files = sorted(media_files, key=pinyin_order)
     

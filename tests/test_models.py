@@ -1,6 +1,5 @@
 """Tests for models module (MediaState)."""
 import json
-import pytest
 from pathlib import Path
 
 from src.media_server.models import MediaState

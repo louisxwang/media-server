@@ -1,13 +1,12 @@
 """Tests for browse module."""
-import pytest
 from pathlib import Path
 
 from src.media_server.browse import (
+    filter_hidden_media,
     get_all_media_files,
     get_all_video_files,
-    search_media_files,
-    filter_hidden_media,
     prepare_media_page,
+    search_media_files,
 )
 
 

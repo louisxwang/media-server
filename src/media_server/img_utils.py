@@ -1,6 +1,8 @@
 """Contains image processing utilities."""
 import os
+
 from PIL import Image
+
 
 def get_file_list(full_path, extensions=('.png',)):
     """Get all files under given folder"""
@@ -45,8 +47,6 @@ def get_xmp_tags(file_path):
 
     return tags
 """Contains image processing utilities."""
-import os
-from PIL import Image
 
 def get_file_list(full_path, extensions=('.png',)):
     """Get all files under given folder"""
