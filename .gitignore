@@ -1,0 +1,8 @@
+**/old/
+static/
+.conda/
+src/ffmpeg
+src/batch-preview-generator
+__pycache__/
+*.pyc
+*.egg-info/

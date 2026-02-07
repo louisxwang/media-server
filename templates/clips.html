@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clips</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        header { background-color: #4a484d; color: white; padding: 5px; text-align: center; font-size: 1em; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: relative; }
+        #menuToggle { position: fixed; left: 10px; top: 10px; font-size: 24px; cursor: pointer; z-index: 2; }
+        .side-menu { height: 100%; width: 0; position: fixed; z-index: 1; top: 0; left: 0; background-color: #111; overflow-x: hidden; transition: 0.5s; padding-top: 60px; }
+        .side-menu ul { list-style-type: none; padding: 0; }
+        .side-menu ul li { padding: 8px 8px 8px 16px; text-decoration: none; font-size: 25px; color: #818181; display: block; transition: 0.3s; }
+        .side-menu ul li a { color: white; text-decoration: none; }
+        .side-menu ul li a i { margin-right: 10px; }
+        .side-menu ul li:hover { background-color: #575757; }
+        .side-menu ul li a:hover { color: #f1f1f1; }
+        .gallery-container { padding: 4px; max-width: 1200px; margin: auto; }
+        .grid { display: grid; grid-gap: 4px; grid-template-columns: repeat(auto-fill, minmax(30vw, 1fr)); }
+        .grid-item { position: flex; align-items: center; align-self: center; }
+        .grid-item video { width: 100%; height: auto; border-radius: 4px; }
+        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); align-content: center; }
+        .modal-media-container { position: absolute; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; align-content: center; overflow:scroll; }
+        .modal img, .modal video { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 100%; max-height: 100%; }
+        @-webkit-keyframes zoom { from { -webkit-transform: scale(0) } to { -webkit-transform: scale(1) } }
+        @keyframes zoom { from { transform: scale(0) } to { transform: scale(1) } }
+        .close { position: absolute; top: 10px; right: 40px; z-index: 999; color: #f1f1f1; font-size: 40px; font-weight: bold; transition: 0.3s; z-index: 2;}
+        .close:hover, .close:focus { color: #bbb; text-decoration: none; cursor: pointer; }
+        /* Dropdown Menu Styles */
+        .menu-btn {
+            position: absolute;
+            top: 12px;
+            right: 80px;
+            color: #f1f1f1;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 2;
+        }
+        .menu-content {
+            display: none;
+            position: absolute;
+            right: 20px;
+            top: 60px;
+            background-color: #333;
+            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+            z-index: 2;
+            border-radius: 4px;
+        }
+        .menu-content a {
+            color: white;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+        .menu-content a:hover {
+            background-color: #575757;
+        }
+        #menuToggle {
+            position: fixed;
+            left: 20px;
+            top: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <i class="fas fa-bars" id="menuToggle" onclick="toggleSideMenu()"></i> <!-- Lateral menu button -->
+        <input type="text" id="searchBar" placeholder="Search media..." oninput="searchMedia()">
+    </header>
+    <div id="sideMenu" class="side-menu">
+        <ul>
+            <li><a href="/"><i class="fas fa-folder"></i> Folders</a></li>
+            <li><a href="/all_media"><i class="fas fa-th-large"></i> All Medias</a></li>
+            <li><a href="/all_videos"><i class="fas fa-video"></i> Videos</a></li>
+            <li><a href="/clips"><i class="fas fa-film"></i> Clips</a></li>
+            <li><a href="/tags"><i class="fas fa-tags"></i> Tags</a></li>
+            <li><a href="/settings"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
+    </div>
+    <div class="gallery-container">
+        <div class="grid">
+            {% for media, clips_list in clips.items() %}
+                {% for clip_dict in clips_list %}
+                <!-- {{ media }} -->
+                <div class="grid-item">
+                    <video class="lazy" data-src="{{ media }}" data-full="{{ media }}" loop-start="{{clip_dict['start']}}" loop-stop="{{clip_dict['stop']}}" onclick="openModal(this, 'video');" muted loop autoplay></video>
+                </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+    <div id="myModal" class="modal">
+        <div id="modalContentContainer" class="modal-media-container">
+            <video id="video01" style="display:none;" controls autoplay loop></video>
+        </div>
+        <span id="mediaName" onclick="renameMedia()" style="position:absolute; top:20px; left:50%; transform:translateX(-50%); color:white; font-size:20px; font-weight:bold; z-index:1;"></span>
+        <span class="close" onclick="closeModal();">&times;</span>
+        <span class="menu-btn" onclick="toggleMenu()">⋮</span>
+        <div class="menu-content" id="menuContent">
+            <a href="#" onclick="deleteMedia()">Delete</a>
+            <a id="clipButton" href="#" onclick="clipMedia()">Clip</a>
+        </div>
+    </div>
+    <script>
+        function toggleSideMenu() {
+            var sideMenu = document.getElementById("sideMenu");
+            if (sideMenu.style.width === "250px") {
+                sideMenu.style.width = "0";
+            } else {
+                sideMenu.style.width = "250px";
+            }
+        }
+
+        function openModal(mediaElement, type) {
+            var modal = document.getElementById('myModal');
+            var modalVideo = document.getElementById('video01');
+            var currentMedia = mediaElement.getAttribute('data-full');
+            var mediaName = document.getElementById('mediaName');
+            mediaName.textContent = currentMedia; // Set the media name
+            modal.style.display = "block";
+            modalVideo.src = currentMedia;
+            modalVideo.style.display = "block";
+        }
+
+        function closeModal() {
+            var modal = document.getElementById('myModal');
+            modal.style.display = "none";
+            var modalVideo = document.getElementById('video01');
+            modalVideo.pause(); // Pause video on close
+        }
+
+        function lazyVideoLoad() {
+            var lazyVideos = [].slice.call(document.querySelectorAll("video.lazy"));
+            if ("IntersectionObserver" in window) {
+                var lazyVideoObserver = new IntersectionObserver(function(entries, observer) {
+                    entries.forEach(function(videoObserver) {
+                        video = videoObserver.target;
+                        if (videoObserver.isIntersecting) {
+                            if(!video.src){
+                                video.src = video.getAttribute('data-src');
+                                video.load();
+                            }
+                            else if(video.paused){
+                                video.play();
+                            }
+                        } else {
+                            video.pause();
+                        }
+                    });
+                });
+
+                lazyVideos.forEach(function(lazyVideo) {
+                    lazyVideoObserver.observe(lazyVideo);
+                });
+            }
+        }
+        document.addEventListener("DOMContentLoaded", lazyVideoLoad);
+        document.addEventListener("scroll", lazyVideoLoad);
+
+        function clipMedia(){
+            var currentMedia = document.getElementById('mediaName').textContent;
+            window.location.href='/video_clip_marker?video=' + encodeURIComponent(currentMedia);
+
+        }
+
+        function toggleMenu() {
+            var menuContent = document.getElementById("menuContent");
+            if (menuContent.style.display === "block") {
+                menuContent.style.display = "none";
+            } else {
+                menuContent.style.display = "block";
+            }
+            var clipButton = document.getElementById("clipButton")
+            var modalVideo = document.getElementById('video01');
+            var currentMedia = modalVideo.src;
+            if (currentMedia.endsWith('.mp4') || currentMedia.endsWith('.webm')) {
+                clipButton.style.display = "block"
+              }
+              else{
+                clipButton.style.display = "none"
+              }
+
+        }
+
+        function loopAllVideos() {
+            var videos = document.querySelectorAll('.grid-item video');
+            videos.forEach(video => {
+                start = parseFloat(video.getAttribute('loop-start'));
+                stop = parseFloat(video.getAttribute('loop-stop'));
+                // console.log(video.currentTime, start, stop);
+                if (video.currentTime >0 && !video.paused && video.readyState > 2 && (video.currentTime >= stop || video.currentTime < start)) {
+                    video.currentTime = start;
+                }
+            });
+        }
+        var timer_loop1_videos = setInterval(loopAllVideos, 2);
+        // function initVideoLoopController(){
+        //     console.log("Init video loop controller");
+        //     var videos = document.querySelectorAll('.grid-item video');
+        //     videos.forEach(video => {
+        //         video.addEventListener("timeupdate", (event) => {
+        //             start = parseFloat(video.getAttribute('loop-start'));
+        //             stop = parseFloat(video.getAttribute('loop-stop'));
+        //             if (video.currentTime >= stop || video.currentTime < start) {
+        //                 video.currentTime = start;
+        //             }
+        //         });
+        //     });
+        // }
+        // document.addEventListener("DOMContentLoaded", initVideoLoopController);
+    </script>
+</body>
+</html>

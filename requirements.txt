@@ -1,0 +1,3 @@
+flask
+Pillow  # for png to jpg convertion
+natsort  # for natural sorting of files

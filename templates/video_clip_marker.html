@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Clip Marker</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #444;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        video {
+            width: 100%;
+            max-height: 80%;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        #controls {
+            display: flex;
+            /* justify-content: space-around; */
+            width: 100%;
+            /* max-width: 800px; */
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #clipList {
+            width: 100%;
+            max-width: 800px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            margin-right: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .clip-number {
+            font-weight: bold;
+        }
+        .seek-button, .remove-button {
+            background-color: #28a745;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease;
+        }
+        .seek-button:hover {
+            background-color: #218838;
+        }
+        .remove-button {
+            background-color: #dc3545;
+        }
+        .remove-button:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Video Clip Marker</h1>
+
+    <video id="video" controls autoplay>
+        <source src="{{ video_file }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    {{ video_file }}
+    <div id="skip_controls">
+        <button id="skip_backward_10" onclick="skip_video(-30)"><<</button>
+        <button id="skip_backward_2" onclick="skip_video(-2)"><</button>
+        <button id="play" onclick="play_video()">Play</button>
+        <button id="skip_forward_2" onclick="skip_video(2)">></button>
+        <button id="skip_forward_10" onclick="skip_video(30)">>></button>
+    </div>
+    <div id="controls">
+        <button id="addClipBtn">Add Clip</button>
+        <button id="startMarkBtn">Mark Start</button>
+        <button id="stopMarkBtn">Mark Stop</button>
+        <button id="genClipsBtn" onclick="genClips()">Gen Clips</button>
+        <select name="resolution" id="resolution">
+            <option value="240">240p</option>
+            <option value="320" selected>320p</option>
+            <option value="480">480p</option>
+            <option value="1">origin</option>
+          </select>
+    </div>
+
+    <div id="clipList">
+        Marked Clips
+        <table>
+            <thead>
+                <tr>
+                    <th>Clip #</th>
+                    <th>Move</th>
+                    <th>Start Time</th>
+                    <th>Stop Time</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="clipTable">
+                <!-- Clip markers will appear here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const startMarkBtn = document.getElementById('startMarkBtn');
+        const stopMarkBtn = document.getElementById('stopMarkBtn');
+        const addClipBtn = document.getElementById('addClipBtn');
+        const clipTable = document.getElementById('clipTable');
+
+        let startMark = null;
+        let stopMark = null;
+        let selectedRow = null;
+        let loopStart = null;
+        let loopStop = null;
+
+        startMarkBtn.addEventListener('click', () => {
+            startMark = video.currentTime;
+            const rows = clipTable.querySelectorAll('tr');
+            if (rows.length>0){
+                const startTimeInput = selectedRow.querySelector('.start-time');
+                startTimeInput.value = startMark.toFixed(2);
+                const stopTimeInput = selectedRow.querySelector('.stop-time');
+                stopMark = parseFloat(stopTimeInput.value);
+                console.log(startMark, stopMark);
+                if (stopMark < startMark){
+                    console.log(startMark+1);
+                    stopTimeInput.value = (startMark+2).toFixed(2);
+                }
+            }
+            else{
+                console.log("Create new clip")
+                console.log(startMark, startMark+1);
+                addClipToTable(startMark.toFixed(2), (startMark+2.).toFixed(2));
+            }
+            saveClips();
+        });
+
+        stopMarkBtn.addEventListener('click', () => {
+            console.log("Mark stop")
+            stopMark = video.currentTime;
+            const stopTimeInput = selectedRow.querySelector('.stop-time');
+            stopTimeInput.value = stopMark.toFixed(2);
+            saveClips();
+        });
+
+        addClipBtn.addEventListener('click', () => {
+            startMark = video.currentTime;
+            addClipToTable(startMark.toFixed(2), (startMark+1.).toFixed(2));
+            saveClips();
+        });
+
+        function skip_video(t_sec){
+            video.currentTime = video.currentTime + t_sec;
+        }
+        function play_video(){
+            if (loopStop != null){
+                loopStop = null;
+            }
+            else{
+                if (video.paused){
+                    video.play();
+                }
+                else{
+                    video.pause();
+                }
+            } 
+        }
+
+        function addClipToTable(start, stop) {
+            console.log("addClipToTable")
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="clip-number"></td>
+                <td><button class="seek-button" onclick="moveUp(this)">Up</button><button class="seek-button" onclick="moveDown(this)">Down</button></td>
+                <td><button class="seek-button" onclick="playClip(this)">Play</button><input type="number" value="${start}" step="0.1" class="start-time" style="width:5vh"></td>
+                <td><button class="seek-button" onclick="seekTo(this.nextElementSibling.value, false)">Seek</button><input type="number" value="${stop}" step="0.1" class="stop-time" style="width:5vh"></td>
+                <td>
+                    <button class="remove-button" onclick="removeClip(this)">Remove</button>
+                    <button class="seek-button" onclick="genSingleClip(this)">Gen</button>
+                </td>
+                `;
+            row.addEventListener('click', () => selectRow(row)); 
+            if (selectedRow) {
+                selectedRow.after(row);  //insert row after currently selected row
+            }
+            else {
+                clipTable.appendChild(row);
+            }
+            selectRow(row);
+            updateClipNumbers();
+        }
+        function selectRow(row) {
+            console.log("Select row")
+            if (selectedRow) {
+                selectedRow.style.backgroundColor = '';
+            }
+            selectedRow = row;
+            selectedRow.style.backgroundColor = '#e0f7fa';
+        }
+        function moveUp(button){
+            const row = button.closest('tr');
+            row.previousSibling.before(row);
+        }
+        function moveDown(button){
+            const row = button.closest('tr');
+            row.nextSibling.after(row);
+        }
+
+        function playClip(button) {
+            const row = button.closest('tr');
+            const startTimeInput = row.querySelector('.start-time');
+            const stopTimeInput = row.querySelector('.stop-time');
+            loopStart = parseFloat(startTimeInput.value);
+            loopStop = parseFloat(stopTimeInput.value);
+            video.currentTime = loopStart;
+            video.play();
+        }
+
+        video.addEventListener('timeupdate', () => {
+            if (loopStart !== null && loopStop !== null) {
+                if (video.currentTime >= loopStop) {
+                    video.currentTime = loopStart;
+                }
+            }
+        });
+        video.addEventListener('pause', () => {
+            loopStart = null;
+            loopStop = null;
+        });
+        function seekTo(time, play_flag) {
+            video.currentTime = time;
+            if(play_flag){
+                video.play();
+            }
+        }
+        function removeClip(button) {
+            const row = button.closest('tr');
+            row.remove();
+            updateClipNumbers();
+            saveClips();
+        }
+        function updateClipNumbers() {
+            const rows = clipTable.querySelectorAll('tr');
+            rows.forEach((row, index) => {
+                row.querySelector('.clip-number').textContent = index + 1;
+            });
+        }
+
+        // Video filename
+        const videoFilename = '{{ video_file }}';
+        console.log(videoFilename)
+
+        // Load clips when the page loads
+        document.addEventListener('DOMContentLoaded', loadClips);
+
+        function saveClips() {  // save clips timestamps to internal db
+            const clips = [];
+            const rows = clipTable.querySelectorAll('tr');
+            rows.forEach(row => {
+                const startTimeInput = row.querySelector('.start-time');
+                const stopTimeInput = row.querySelector('.stop-time');
+                clips.push({
+                    start: parseFloat(startTimeInput.value),
+                    stop: parseFloat(stopTimeInput.value)
+                });
+            });
+
+            // Send clips data to the server
+            fetch('/save_clips?video=' + encodeURIComponent(videoFilename), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(clips)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to save clips.');
+                }
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        }
+
+        function loadClips() {
+            console.log("loadClips")
+            // Load clips timestamps from the server
+            fetch(`/load_clips?video=`
+             + encodeURIComponent(videoFilename))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load clips.');
+                }
+                return response.json();
+            })
+            .then(clips => {
+                clips.forEach(clip => {
+                    addClipToTable(clip.start, clip.stop);
+                });
+                updateClipNumbers();
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        }
+
+        function genSingleClip(button) {
+            saveClips();  //save any unsaved changes first
+
+            //generate video clip as a concatenation of all marked start and stop timestamps
+            const clips = [];
+            const row = button.closest('tr');
+            const startTimeInput = row.querySelector('.start-time');
+            const stopTimeInput = row.querySelector('.stop-time');
+            clips.push({
+                start: parseFloat(startTimeInput.value),
+                stop: parseFloat(stopTimeInput.value)
+            });
+            
+            const resolution = document.getElementById('resolution').value;
+            // Send clips data to the server
+            fetch('/gen_clips?video=' + encodeURIComponent(videoFilename), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    clips:clips,
+                    resolution:resolution,
+                    gen_preview: false,
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to save clips.');
+                }
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        }
+        function genClips(){
+            saveClips();  //save any unsaved changes first
+
+            //generate video clip as a concatenation of all marked start and stop timestamps
+            const clips = [];
+            const rows = clipTable.querySelectorAll('tr');
+            rows.forEach(row => {
+                const startTimeInput = row.querySelector('.start-time');
+                const stopTimeInput = row.querySelector('.stop-time');
+                clips.push({
+                    start: parseFloat(startTimeInput.value),
+                    stop: parseFloat(stopTimeInput.value)
+                });
+            });
+            const resolution = document.getElementById('resolution').value;
+            // Send clips data to the server
+            fetch('/gen_clips?video=' + encodeURIComponent(videoFilename), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    clips:clips,
+                    resolution:resolution,
+                    gen_preview: true,
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to save clips.');
+                }
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        }
+    </script>
+
+</body>
+</html>
