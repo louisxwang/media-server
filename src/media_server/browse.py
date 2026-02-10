@@ -5,6 +5,7 @@ from natsort import natsorted
 
 from src.media_server.media_handlers import get_media_preview
 from src.media_server.models import get_pinyin
+from src.media_server.config import fs_to_url
 
 
 def get_all_media_files(path: str, media_files_cache: list) -> list:
@@ -36,7 +37,7 @@ def get_all_video_files(path: str, all_media: list, video_files_cache: list) -> 
     video_exts = ('.mp4', '.webm', '.ogg')
     video_files_cache = [
         f for f in all_media
-        if f.lower().endswith(video_exts) and 'previews' not in f
+        if f.lower().endswith(video_exts) and 'preview.' not in f
     ]
     
     return video_files_cache
@@ -106,8 +107,8 @@ def prepare_media_page(
     # Prepare URLs and metadata
     media_paths = [
         '/' + '/'.join([media_url, *subpath.split('/'), mf])
-        for mf in media_files if subpath
-    ] or [
+        for mf in media_files
+    ]  if subpath else [
         '/' + '/'.join([media_url, mf])
         for mf in media_files
     ]
@@ -118,7 +119,7 @@ def prepare_media_page(
     ]
     
     preview_paths = [
-        get_media_preview(os.path.join(directory_path, mf))
+        fs_to_url(get_media_preview(os.path.join(directory_path, mf)), static_dir, media_url)
         for mf in media_files
     ]
     
