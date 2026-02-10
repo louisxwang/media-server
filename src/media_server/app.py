@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from flask import Flask, jsonify, redirect, render_template, request, url_for
+from flask import Flask, jsonify, redirect, render_template, request, url_for, send_from_directory
 
 from src.media_server.browse import (
     filter_hidden_media,
@@ -28,13 +28,20 @@ STATE = MediaState(ROOT)
 app = Flask(
     __name__,
     template_folder=PATHS['templates_dir'],
-    static_folder=PATHS['static_dir'],
+    static_folder=PATHS['asset_path'],
+    static_url_path='/assets',
 )
+
+
+@app.route('/media/<path:filename>')
+def media_files(filename):
+    return send_from_directory(PATHS['media_path'], filename)
+
 @app.route('/')
 @app.route('/browse/<path:subpath>')
 def Home(subpath=''):
     """Browse media by directory."""
-    full_path = os.path.join(PATHS['static_dir'], subpath)
+    full_path = os.path.join(PATHS['media_path'], subpath)
     print(f"Browsing: {full_path}")
     
     page_data = prepare_media_page(
@@ -43,8 +50,8 @@ def Home(subpath=''):
         STATE.sorted_tags,
         STATE.tags,
         STATE.hidden_tags,
-        PATHS['static_dir'],
-        PATHS['media_url'],
+        PATHS['media_path'],
+        'media',
         'Home',
     )
     
@@ -69,7 +76,7 @@ def search_media(subpath=''):
     """Search media files by keywords."""
     keywords = request.args.get('keywords', '').split('_')
     subpath = subpath.strip()
-    full_path = os.path.join(PATHS['static_dir'], subpath)
+    full_path = os.path.join(PATHS['media_path'], subpath)
     
     if not os.path.isdir(full_path):
         return redirect(url_for('Home'))
@@ -85,7 +92,7 @@ def search_media(subpath=''):
 @app.route('/all_media')
 def all_media(subpath=''):
     """Get random sample of all media files."""
-    full_path = os.path.join(PATHS['static_dir'], subpath)
+    full_path = os.path.join(PATHS['media_path'], subpath)
     
     if not os.path.isdir(full_path):
         return redirect(url_for('Home'))
@@ -103,7 +110,7 @@ def all_media(subpath=''):
 def all_videos(subpath=''):
     """Browse all video files."""
     import random
-    full_path = os.path.join(PATHS['static_dir'], subpath)
+    full_path = os.path.join(PATHS['media_path'], subpath)
     
     if not os.path.isdir(full_path):
         return redirect(url_for('Home'))
@@ -115,7 +122,7 @@ def all_videos(subpath=''):
     
     media_files = filter_hidden_media(media_files, STATE.tags, STATE.hidden_tags)
     # Convert filesystem paths to URL paths and compute previews
-    media_paths = [fs_to_url(f, PATHS['static_dir'], PATHS['media_url']) for f in media_files]
+    media_paths = [fs_to_url(f, PATHS['media_path'], 'media') for f in media_files]
     media_tags = [
         " ".join([
             tag for tag, _ in STATE.sorted_tags
@@ -130,7 +137,7 @@ def all_videos(subpath=''):
         preview_fs = os.path.join(os.path.dirname(f), 'previews', f'{b_no_ext} preview{ext}').replace('\\', '/')
         if not os.path.isfile(preview_fs):
             preview_fs = f
-        preview_paths.append(fs_to_url(preview_fs, PATHS['static_dir'], PATHS['media_url']))
+        preview_paths.append(fs_to_url(preview_fs, PATHS['media_path'], 'media'))
     breadcrumb_paths = subpath.split('/') if subpath else []
     
     return render_template(
@@ -165,8 +172,8 @@ def delete_multiple():
             for item in items:
                 success_item, error = delete_media(
                     item,
-                    PATHS['media_url'],
-                    PATHS['static_dir'],
+                    'media',
+                    PATHS['media_path'],
                     PATHS['trash_dir'],
                 )
                 if not success_item:
@@ -189,8 +196,8 @@ def delete():
     
     success, error = delete_media(
         media_path,
-        PATHS['media_url'],
-        PATHS['static_dir'],
+        'media',
+        PATHS['media_path'],
         PATHS['trash_dir'],
     )
     
@@ -210,10 +217,10 @@ def rename():
         media_path_str = media_path.lstrip('/')
         
         # Validate URL prefix
-        if not media_path_str.startswith(PATHS['media_url']):
+        if not media_path_str.startswith('media'):
             return jsonify({'success': False, 'error': 'File not under media folder'})
         
-        fs_media = url_to_fs(media_path_str, PATHS['static_dir'], PATHS['media_url'])
+        fs_media = url_to_fs(media_path_str, PATHS['media_path'], 'media')
         
         if not os.path.exists(fs_media):
             return jsonify({'success': False, 'error': 'File does not exist'})
@@ -223,8 +230,8 @@ def rename():
             new_name,
             STATE.tags,
             STATE.clips_data,
-            PATHS['media_url'],
-            PATHS['static_dir'],
+            'media',
+            PATHS['media_path'],
         )
         
         if success:
@@ -232,7 +239,7 @@ def rename():
             STATE.save_clips()
             return jsonify({
                 'success': True,
-                'new_path': fs_to_url(new_path, PATHS['static_dir'], PATHS['media_url']),
+                'new_path': fs_to_url(new_path, PATHS['media_path'], 'media'),
                 'new_pinyin': get_pinyin(new_filename),
             })
         else:
@@ -260,7 +267,7 @@ def rename_multiple():
             # Rename media/folders
             for item in items:
                 try:
-                    fs_item = url_to_fs(item, PATHS['static_dir'], PATHS['media_url'])
+                    fs_item = url_to_fs(item, PATHS['media_path'], 'media')
                     if os.path.isfile(fs_item):
                         # Rename file
                         dir_name, old_name = os.path.split(fs_item)
@@ -270,8 +277,8 @@ def rename_multiple():
                             new_file_name,
                             STATE.tags,
                             STATE.clips_data,
-                            PATHS['media_url'],
-                            PATHS['static_dir'],
+                            'media',
+                            PATHS['media_path'],
                         )
                     elif os.path.isdir(fs_item):
                         # Rename directory
@@ -308,8 +315,8 @@ def paste_multiple():
     success, error = move_items(
         STATE.medias_in_clipboard,
         destination,
-        PATHS['static_dir'],
-        PATHS['media_url'],
+        PATHS['media_path'],
+        'media',
     )
     
     STATE.medias_in_clipboard = []
@@ -494,7 +501,7 @@ def page_for_medias(medias: list, tagname: str = '') -> str:
     media_exts = ('.jpg', '.jpeg', '.png', '.webm', '.webp', '.mp4', '.gif', '.ogg')
     path_dict = {}
     
-    for root, dirs, files in os.walk(PATHS['static_dir']):
+    for root, dirs, files in os.walk(PATHS['media_path']):
         if PATHS['trash_dir'] not in root:
             for file in files:
                 if file.lower().endswith(media_exts):
@@ -530,14 +537,14 @@ def page_for_medias(medias: list, tagname: str = '') -> str:
     preview_paths = []
     for file in media_files:
         fs_file = os.path.join(path_dict[file], file).replace('\\', '/')
-        media_paths.append(fs_to_url(fs_file, PATHS['static_dir'], PATHS['media_url']))
+        media_paths.append(fs_to_url(fs_file, PATHS['media_path'], 'media'))
 
         # compute preview file path and convert to URL
         basename_no_ext, extension = os.path.splitext(file)
         preview_fs = os.path.join(path_dict[file], 'previews', f'{basename_no_ext} preview{extension}').replace('\\', '/')
         if not os.path.isfile(preview_fs):
             preview_fs = fs_file
-        preview_paths.append(fs_to_url(preview_fs, PATHS['static_dir'], PATHS['media_url']))
+        preview_paths.append(fs_to_url(preview_fs, PATHS['media_path'], 'media'))
     
     return render_template(
         'index.html',

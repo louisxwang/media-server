@@ -4,7 +4,6 @@ import os
 from natsort import natsorted
 
 from src.media_server.media_handlers import get_media_preview
-from src.media_server.config import fs_to_url
 from src.media_server.models import get_pinyin
 
 
@@ -118,10 +117,10 @@ def prepare_media_page(
         for mf in media_files
     ]
     
-    preview_paths = []
-    for mf in media_files:
-        preview_fs = get_media_preview(os.path.join(directory_path, mf))
-        preview_paths.append(fs_to_url(preview_fs, static_dir, media_url))
+    preview_paths = [
+        get_media_preview(os.path.join(directory_path, mf))
+        for mf in media_files
+    ]
     
     breadcrumb_paths = subpath.split('/') if subpath else []
     

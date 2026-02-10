@@ -14,13 +14,13 @@ def _get_media_root(root_path: str) -> Path:
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f) or {}
-                static_path = config.get('STATIC_PATH')
-                if static_path:
-                    return Path(static_path)
+                media_path = config.get('MEDIA_PATH')
+                if media_path:
+                    return Path(media_path)
         except Exception:
             pass
     
-    # Fallback to root/static if config not found or STATIC_PATH not set
+    # Fallback to root/static if config not found or MEDIA_PATH not set
     return Path(root_path) / 'static'
 
 

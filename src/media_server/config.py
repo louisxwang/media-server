@@ -22,10 +22,10 @@ def get_paths(root: str) -> dict:
     """Calculate all necessary paths for the application."""
     config = load_config(root)
     
-    static_dir = os.path.abspath(config.get('STATIC_PATH', os.path.join(root, 'static')))
-    media_url = config.get('MEDIA_URL', 'static')
+    media_path = os.path.abspath(config.get('MEDIA_PATH', os.path.join(root, 'static')))
+    asset_path = os.path.abspath(config.get('ASSET_PATH', os.path.join(root, 'assets')))
     templates_dir = os.path.join(root, 'templates')
-    trash_dir = os.path.join(static_dir, 'deleted')
+    trash_dir = os.path.join(media_path, 'deleted')
     
     # Create trash directory if it doesn't exist
     if not os.path.exists(trash_dir):
@@ -33,8 +33,8 @@ def get_paths(root: str) -> dict:
     
     return {
         'root': root,
-        'static_dir': static_dir,
-        'media_url': media_url,
+        'media_path': media_path,
+        'asset_path': asset_path,
         'templates_dir': templates_dir,
         'trash_dir': trash_dir,
     }

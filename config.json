@@ -1,4 +1,4 @@
 {
-  "STATIC_PATH": "E:\\media_server\\static",
-  "MEDIA_URL": "static"
+  "MEDIA_PATH": "E:\\media_server\\static",
+  "ASSET_PATH": "E:\\media-server\\assets"
 }
