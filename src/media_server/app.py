@@ -32,8 +32,8 @@ app = Flask(
     static_url_path='/assets',
 )
 
-
-@app.route('/media/<path:filename>')
+media_url_prefix = '/media'
+@app.route(media_url_prefix + '/<path:filename>')
 def media_files(filename):
     return send_from_directory(PATHS['media_path'], filename)
 
@@ -243,6 +243,7 @@ def rename():
                 'new_pinyin': get_pinyin(new_filename),
             })
         else:
+            print(f"Error renaming {media_path}: {error}")
             return jsonify({'success': False, 'error': error})
     
     except Exception as e:
@@ -265,13 +266,16 @@ def rename_multiple():
             STATE.save_tags()
         else:
             # Rename media/folders
+            print(f"Renaming items: {items} to {new_name}")
             for item in items:
                 try:
                     fs_item = url_to_fs(item, PATHS['media_path'], 'media')
+                    print(f"Renaming {fs_item}")
                     if os.path.isfile(fs_item):
                         # Rename file
                         dir_name, old_name = os.path.split(fs_item)
                         new_file_name = new_name.replace('#', old_name)
+                        print(new_file_name)
                         rename_media_file(
                             fs_item,
                             new_file_name,
@@ -395,7 +399,8 @@ def get_video_resolution(file: str) -> tuple[int, int]:
 @app.route('/gen_clips', methods=['POST'])
 def gen_clips():
     """Generate video clips from timestamps."""
-    video = request.args.get('video', '')[1:]
+    video_url = request.args.get('video', '')[1:]
+    video = PATHS['media_path'] + '/' + video_url[len(media_url_prefix):]
     basename, extension = os.path.splitext(video)
     
     try:
