@@ -18,7 +18,8 @@ def get_all_media_files(path: str, media_files_cache: list) -> list:
     
     for root, dirs, files in os.walk(path):
         for name in files:
-            if name.lower().endswith(media_exts):
+            f = name.lower()
+            if f.endswith(media_exts) and 'preview.' not in f:
                 file_path = os.path.join(root, name)
                 media_files_cache.append(file_path.replace('\\', '/'))
     
