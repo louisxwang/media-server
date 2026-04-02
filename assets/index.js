@@ -268,6 +268,11 @@ function renameMedia() {
     var oldName = mediaSrc.split('/').pop();
     var extension = oldName.split('.').pop();
     var baseName = oldName.replace(/\.[^/.]+$/, "");
+    // Pause the modal video if it's displayed
+    var modalVideo = document.getElementById('video01');
+    if (modalVideo && modalVideo.style.display !== 'none') {
+        modalVideo.pause();
+    }
     var newName = prompt("Enter new name for the media (without extension):", baseName);
     if (newName && newName !== baseName) {
         fetch('/rename', {
@@ -292,6 +297,7 @@ function renameMedia() {
                         modalVideo.src = newMediaSrc;
                     }
                     mediaName.textContent = newName + '.' + extension;
+                    location.reload();  // Reload to update grid and ensure consistency
                 } else {
                     alert('Error renaming media: ' + data.error);
                 }
@@ -299,6 +305,12 @@ function renameMedia() {
             .catch((error) => {
                 console.error('Error:', error);
             });
+    }
+    else {
+        // If user cancels or enters the same name, restore the video source if it was paused
+        if (modalVideo && modalVideo.style.display !== 'none') {
+            modalVideo.play();
+        }
     }
 }
 
@@ -641,6 +653,23 @@ function renameSelected() {
         if (!confirm('Are you sure you want to rename?')) {
             return;
         }
+        // Pause videos in selected items
+        selectedItems.forEach(item => {
+            const gridItem = item.closest('.grid-item');
+            const video = gridItem.querySelector('video');
+            if (video) {
+                video.pause();
+            }
+        });
+        // Also pause modal if it's open and the current media is selected
+        const currentMediaName = medias[currentIndex].split('/').pop();
+        if (selectedNames.includes(currentMediaName)) {
+            var modalVideo = document.getElementById('video01');
+            if (modalVideo && modalVideo.style.display !== 'none') {
+                modalVideo.pause();
+            }
+        }
+
         fetch('/rename_multiple', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
